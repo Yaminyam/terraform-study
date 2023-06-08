@@ -63,6 +63,27 @@ resource "aws_ec2_transit_gateway_attachment" "attachment" {
     vpc_id = aws_vpc.vpc[count.index].id
 }
 
+//security_group
+resource "aws_security_group" "security_group" {
+  count = 3
+  name = "security-group-${count.index}"
+  description = "Security Group"
+  vpc_id = aws_vpc.vpc[count.index].id
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  provider = "aws.${local.regions[count.index]}"
+}
+
 //Instance
 resource "aws_instance" "public_instance" {
     count = 3
