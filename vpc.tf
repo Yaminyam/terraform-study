@@ -108,7 +108,7 @@ resource "aws_launch_configuration" "launch_configuration" {
 resource "aws_autoscaling_group" "autoscaling_group" {
   count = 3
   name = "autoscaling-group"
-  launch_configuration = aws_launch_configuration.launch_configuration[0].name
+  launch_configuration = aws_launch_configuration.launch_configuration[count.index].name
   min_size = 1
   max_size = 3
   desired_capacity = 2
