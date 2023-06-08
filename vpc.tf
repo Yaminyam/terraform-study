@@ -84,6 +84,18 @@ resource "aws_security_group" "security_group" {
   provider = "aws.${local.regions[count.index]}"
 }
 
+resource "aws_security_group" "db_security_group" {
+  count = 3
+  name_prefix = "my-db-security-group-${count.index}"
+  ingress {
+    from_port = 3306
+    to_port   = 3306
+    protocol  = "tcp"
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+  provider = "aws.${local.regions[count.index]}"
+}
+
 resource "aws_launch_configuration" "launch_configuration" {
   count = 3
   name_prefix = "launch-configuration-${count.index}"
@@ -140,4 +152,22 @@ resource "aws_autoscaling_attachment" "asg_attachment" {
   autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
   alb_target_group_arn = aws_lb_target_group.target_group.arn
   provider = "aws.${local.regions[count.index]}"
+}
+
+resource "aws_db_subnet_group" "subnet_group" {
+    count = 3
+    name = "db-subnet-group"
+    subnet_ids = [aws_subnet.subnet[count.index * 2].id, aws_subnet.subnet[count.index * 2 + 1].id]
+}
+
+resource "aws_db_instance" "db_instance" {
+    count = 3
+    identifier = "mydb-${count.index}"
+    engine = "mysql"
+    engine_version = "8.0"
+    instance_class = "db.t2.micro"
+    allocated_storage = 20
+    vpc_security_group_ids = [aws_security_group.db_security_group[count.index].id]
+    db_subnet_group_name = aws_db_subnet_group.subnet_group[count.index].name
+    provider = "aws.${local.regions[count.index]}"
 }
