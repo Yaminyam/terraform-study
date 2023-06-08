@@ -94,34 +94,37 @@ resource "aws_launch_configuration" "launch_configuration" {
 }
 
 resource "aws_autoscaling_group" "autoscaling_group" {
+  count = 3
   name = "autoscaling-group"
   launch_configuration = aws_launch_configuration.launch_configuration[0].name
   min_size = 1
   max_size = 3
   desired_capacity = 2
-  vpc_zone_identifier = [aws_subnet.subnet[0].id, aws_subnet.subnet[2].id, aws_subnet.subnet[4].id]
-  target_group_arns = [aws_lb_target_group.target_group[0].arn]
-  provider = "aws.${local.regions[0]}"
+  vpc_zone_identifier = [aws_subnet.subnet[count.index * 2].id, aws_subnet.subnet[count.index * 2 + 1].id]
+  provider = "aws.${local.regions[count.index]}"
 }
 
 resource "aws_lb" "lb" {
+  count = 3
   name = "my-lb"
   internal = false
   load_balancer_type = "application"
-  subnets = [aws_subnet.subnet[1].id, aws_subnet.subnet[3].id, aws_subnet.subnet[5].id]
-  security_groups = [aws_security_group.security_group[0].id]
-  provider = "aws.${local.regions[0]}"
+  subnets = [aws_subnet.subnet[count.index * 2].id, aws_subnet.subnet[count.index * 2 + 1].id]
+  security_groups = [aws_security_group.security_group[count.index].id]
+  provider = "aws.${local.regions[count.index]}"
 }
 
 resource "aws_lb_target_group" "target_group" {
+  count = 3
   name = "my-target-group"
   port = 80
   protocol = "HTTP"
-  vpc_id = aws_vpc.vpc[0].id
-  provider = "aws.${local.regions[0]}"
+  vpc_id = aws_vpc.vpc[count.index].id
+  provider = "aws.${local.regions[count.index]}"
 }
 
 resource "aws_lb_listener" "listener" {
+  count = 3
   load_balancer_arn = aws_lb.lb.arn
   port = 80
   protocol = "HTTP"
@@ -129,11 +132,12 @@ resource "aws_lb_listener" "listener" {
     type = "forward"
     target_group_arn = aws_lb_target_group.target_group.arn
   }
-  provider = "aws.${local.regions[0]}"
+  provider = "aws.${local.regions[count.index]}"
 }
 
 resource "aws_autoscaling_attachment" "asg_attachment" {
+  count = 3
   autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
   alb_target_group_arn = aws_lb_target_group.target_group.arn
-  provider = "aws.${local.regions[0]}"
+  provider = "aws.${local.regions[count.index]}"
 }
